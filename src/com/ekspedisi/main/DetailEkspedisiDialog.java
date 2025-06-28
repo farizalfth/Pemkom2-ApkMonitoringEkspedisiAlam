@@ -1,7 +1,7 @@
 // FILE: com/main/DetailEkspedisiDialog.java
 package com.ekspedisi.main;
 
-import com.model.Ekspedisi;
+import com.ekspedisi.model.Ekspedisi;
 import com.ekspedisi.util.I18n;
 import java.awt.*;
 import java.net.URI;

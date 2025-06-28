@@ -1,19 +1,19 @@
-// FILE: com/model/Ekspedisi.java
-package com.model;
+// FILE: com/ekspedisi/model/Ekspedisi.java
+package com.ekspedisi.model;
 
 import java.io.Serializable;
 import java.sql.Date;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Kelas model (POJO) untuk entitas Ekspedisi.
- * Merepresentasikan struktur data dari tabel 'ekspedisi' di database.
- * Mengimplementasikan Serializable untuk memenuhi salah satu kriteria teknis.
- * [IMPLEMENTASI] Serializable
+ * Sekarang juga berisi daftar anggota tim yang terkait.
  */
 public class Ekspedisi implements Serializable {
-    // serialVersionUID diperlukan untuk proses serialisasi yang konsisten.
     private static final long serialVersionUID = 1L;
 
+    // Properti dasar ekspedisi
     private int id;
     private String namaTim;
     private Date tanggal;
@@ -22,36 +22,36 @@ public class Ekspedisi implements Serializable {
     private Double latitude;
     private Double longitude;
     private String catatan;
-    private String pathFoto; // Hanya menyimpan nama file, bukan path lengkap
+    private String pathFoto;
 
-    // Constructors (tidak wajib, tapi baik untuk dimiliki)
-    public Ekspedisi() {}
+    // Properti baru untuk menampung daftar anggota tim
+    private List<AnggotaTim> anggota = new ArrayList<>();
 
-    // Getters and Setters (Dihasilkan otomatis, digunakan untuk mengakses dan mengatur properti)
+    // Getters and Setters
     public int getId() { return id; }
     public void setId(int id) { this.id = id; }
-
     public String getNamaTim() { return namaTim; }
     public void setNamaTim(String namaTim) { this.namaTim = namaTim; }
-
     public Date getTanggal() { return tanggal; }
     public void setTanggal(Date tanggal) { this.tanggal = tanggal; }
-
     public String getTujuan() { return tujuan; }
     public void setTujuan(String tujuan) { this.tujuan = tujuan; }
-
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
-
     public Double getLatitude() { return latitude; }
     public void setLatitude(Double latitude) { this.latitude = latitude; }
-
     public Double getLongitude() { return longitude; }
     public void setLongitude(Double longitude) { this.longitude = longitude; }
-
     public String getCatatan() { return catatan; }
     public void setCatatan(String catatan) { this.catatan = catatan; }
-
     public String getPathFoto() { return pathFoto; }
     public void setPathFoto(String pathFoto) { this.pathFoto = pathFoto; }
+
+    // Getter and Setter untuk daftar anggota
+    public List<AnggotaTim> getAnggota() {
+        return anggota;
+    }
+    public void setAnggota(List<AnggotaTim> anggota) {
+        this.anggota = anggota;
+    }
 }
