@@ -1,35 +1,66 @@
-// FILE: com/main/DetailEkspedisiDialog.java
+// FILE: com/ekspedisi/main/DetailEkspedisiDialog.java
 package com.ekspedisi.main;
 
 import com.ekspedisi.model.Ekspedisi;
 import com.ekspedisi.util.I18n;
-import java.awt.*;
+import com.ekspedisi.util.ImageRotator; // Import kelas helper kita
+
+// Import untuk UI, layout, dan event
+import java.awt.BorderLayout;
+import java.awt.Desktop;
+import java.awt.Dimension;
+import java.awt.FlowLayout;
+import java.awt.Font;
+import java.awt.Frame;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.Image;
+import java.awt.Insets;
+import javax.swing.BorderFactory;
+import javax.swing.ImageIcon;
+import javax.swing.JButton;
+import javax.swing.JComponent;
+import javax.swing.JDialog;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.SwingConstants;
+
+// Import untuk manipulasi gambar, stream, dan URL
+import java.awt.image.BufferedImage;
+import java.io.InputStream;
 import java.net.URI;
+import java.net.URL;
 import java.util.Locale;
-import javax.swing.*;
+import javax.imageio.ImageIO;
 
 /**
  * Dialog read-only untuk menampilkan detail lengkap sebuah Ekspedisi.
- * Termasuk menampilkan foto dan tombol untuk membuka lokasi di Google Maps.
+ * Versi ini sudah mendukung rotasi gambar otomatis berdasarkan metadata EXIF.
  */
 public class DetailEkspedisiDialog extends JDialog {
 
     private final Ekspedisi ekspedisi;
 
     public DetailEkspedisiDialog(Frame parent, Ekspedisi ekspedisi) {
-        super(parent, true); // Modal
+        super(parent, true);
         this.ekspedisi = ekspedisi;
         initUI();
     }
 
     private void initUI() {
-        setTitle(I18n.getString("detail.title") + " - " + ekspedisi.getNamaTim());
+        setTitle("Detail Ekspedisi - " + ekspedisi.getNamaTim());
         setSize(500, 650);
         setResizable(false);
         setLocationRelativeTo(getParent());
         setLayout(new BorderLayout(10, 10));
 
-        // Panel Foto
+        add(createPhotoPanel(), BorderLayout.NORTH);
+        add(createDetailPanel(), BorderLayout.CENTER);
+        add(createButtonPanel(), BorderLayout.SOUTH);
+    }
+
+    private JPanel createPhotoPanel() {
         JPanel photoPanel = new JPanel(new BorderLayout());
         photoPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         JLabel lblFoto = new JLabel();
@@ -37,88 +68,117 @@ public class DetailEkspedisiDialog extends JDialog {
         lblFoto.setPreferredSize(new Dimension(250, 250));
         lblFoto.setBorder(BorderFactory.createEtchedBorder());
         
-        // [IMPLEMENTASI] Multimedia: Muat gambar dari folder 'src/images'
+        // [IMPLEMENTASI] Multimedia dengan Rotasi EXIF
         if (ekspedisi.getPathFoto() != null && !ekspedisi.getPathFoto().isEmpty()) {
             try {
-                // Menggunakan getResource untuk path yang bekerja baik di dalam JAR maupun di IDE
-                java.net.URL imgUrl = getClass().getResource("/images/" + ekspedisi.getPathFoto());
+                URL imgUrl = getClass().getResource("/images/" + ekspedisi.getPathFoto());
                 if (imgUrl != null) {
-                    ImageIcon icon = new ImageIcon(imgUrl);
-                    Image image = icon.getImage().getScaledInstance(250, 250, Image.SCALE_SMOOTH);
-                    lblFoto.setIcon(new ImageIcon(image));
+                    BufferedImage originalImage;
+                    int orientation = 1;
+
+                    // Langkah 1: Baca orientasi EXIF dari stream baru
+                    try (InputStream exifStream = getClass().getResourceAsStream("/images/" + ekspedisi.getPathFoto())) {
+                         if(exifStream != null) {
+                             orientation = ImageRotator.getExifOrientation(exifStream);
+                         }
+                    }
+                    
+                    // Langkah 2: Baca file gambar dari stream baru
+                    try (InputStream imageStream = getClass().getResourceAsStream("/images/" + ekspedisi.getPathFoto())) {
+                        if (imageStream != null) {
+                            originalImage = ImageIO.read(imageStream);
+                        } else {
+                            originalImage = null;
+                        }
+                    }
+
+                    if (originalImage != null) {
+                        // Langkah 3: Putar gambar jika perlu menggunakan helper kita
+                        BufferedImage rotatedImage = ImageRotator.rotateImage(originalImage, orientation);
+                        
+                        // Langkah 4: Scale gambar agar pas di label
+                        Image finalImage = rotatedImage.getScaledInstance(250, 250, Image.SCALE_SMOOTH);
+                        lblFoto.setIcon(new ImageIcon(finalImage));
+                    } else {
+                        lblFoto.setText("Gagal membaca file gambar");
+                    }
                 } else {
-                     lblFoto.setText("Foto tidak ditemukan");
+                     lblFoto.setText("File gambar tidak ditemukan");
                 }
             } catch (Exception e) {
-                lblFoto.setText("Gagal memuat foto");
+                lblFoto.setText("Error saat memuat foto");
                 e.printStackTrace();
             }
         } else {
             lblFoto.setText("Tidak ada foto");
         }
+        
         photoPanel.add(lblFoto, BorderLayout.CENTER);
-        add(photoPanel, BorderLayout.NORTH);
-
-        // Panel Detail (GridBagLayout untuk penataan rapi)
+        return photoPanel;
+    }
+    
+    private JPanel createDetailPanel() {
         JPanel detailPanel = new JPanel(new GridBagLayout());
         detailPanel.setBorder(BorderFactory.createEmptyBorder(0, 15, 10, 15));
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(4, 4, 4, 4);
-        gbc.anchor = GridBagConstraints.WEST;
         
-        // Menambahkan baris detail
         int y = 0;
-        addDetailRow(detailPanel, gbc, y++, I18n.getString("form.team_name"), ekspedisi.getNamaTim());
-        addDetailRow(detailPanel, gbc, y++, I18n.getString("form.destination"), ekspedisi.getTujuan());
-        addDetailRow(detailPanel, gbc, y++, I18n.getString("form.date"), ekspedisi.getTanggal().toString());
-        addDetailRow(detailPanel, gbc, y++, I18n.getString("form.status"), ekspedisi.getStatus());
-        addDetailRow(detailPanel, gbc, y++, I18n.getString("form.latitude"), String.valueOf(ekspedisi.getLatitude()));
-        addDetailRow(detailPanel, gbc, y++, I18n.getString("form.longitude"), String.valueOf(ekspedisi.getLongitude()));
-        addDetailRow(detailPanel, gbc, y++, I18n.getString("form.notes"), "<html><p style='width:300px'>" + (ekspedisi.getCatatan() != null ? ekspedisi.getCatatan() : "") + "</p></html>");
+        addDetailRow(detailPanel, y++, "Nama Tim:", ekspedisi.getNamaTim());
+        addDetailRow(detailPanel, y++, "Tujuan:", ekspedisi.getTujuan());
+        addDetailRow(detailPanel, y++, "Tanggal:", ekspedisi.getTanggal().toString());
+        addDetailRow(detailPanel, y++, "Status:", ekspedisi.getStatus());
+        addDetailRow(detailPanel, y++, "Latitude:", String.valueOf(ekspedisi.getLatitude()));
+        addDetailRow(detailPanel, y++, "Longitude:", String.valueOf(ekspedisi.getLongitude()));
+        // Menggunakan HTML untuk word-wrapping di JLabel
+        addDetailRow(detailPanel, y++, "Catatan:", "<html><p style='width:300px'>" + (ekspedisi.getCatatan() != null ? ekspedisi.getCatatan() : "") + "</p></html>");
 
-        add(detailPanel, BorderLayout.CENTER);
+        return detailPanel;
+    }
 
-        // Panel Tombol
+    private JPanel createButtonPanel() {
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        JButton btnMap = new JButton(I18n.getString("detail.map.button"));
-        JButton btnClose = new JButton(I18n.getString("detail.close.button"));
+        JButton btnMap = new JButton("Buka di Peta");
+        JButton btnClose = new JButton("Tutup");
+        
+        btnMap.addActionListener(e -> openMap());
+        btnClose.addActionListener(e -> dispose());
         
         buttonPanel.add(btnMap);
         buttonPanel.add(btnClose);
-        add(buttonPanel, BorderLayout.SOUTH);
-
-        // Listeners
-        btnClose.addActionListener(e -> dispose());
-        btnMap.addActionListener(e -> openMap());
+        return buttonPanel;
     }
     
-    // Metode helper untuk menambahkan baris label:nilai
-    private void addDetailRow(JPanel panel, GridBagConstraints gbc, int y, String label, String value) {
-        gbc.gridx = 0;
-        gbc.gridy = y;
-        gbc.weightx = 0.2; // Alokasi lebar untuk label
-        JLabel lbl = new JLabel("<html><b>" + label + ":</b></html>");
-        panel.add(lbl, gbc);
+    private void addDetailRow(JPanel panel, int y, String label, String value) {
+        GridBagConstraints gbcLabel = new GridBagConstraints();
+        gbcLabel.gridx = 0;
+        gbcLabel.gridy = y;
+        gbcLabel.anchor = GridBagConstraints.FIRST_LINE_END;
+        gbcLabel.insets = new Insets(2, 2, 2, 10);
+        JLabel lbl = new JLabel("<html><b>" + label + "</b></html>");
+        panel.add(lbl, gbcLabel);
 
-        gbc.gridx = 1;
-        gbc.weightx = 0.8; // Alokasi lebar untuk nilai
-        panel.add(new JLabel(value), gbc);
+        GridBagConstraints gbcValue = new GridBagConstraints();
+        gbcValue.gridx = 1;
+        gbcValue.gridy = y;
+        gbcValue.anchor = GridBagConstraints.FIRST_LINE_START;
+        gbcValue.weightx = 1.0;
+        gbcValue.fill = GridBagConstraints.HORIZONTAL;
+        gbcValue.insets = new Insets(2, 2, 2, 2);
+        panel.add(new JLabel(value != null && !value.isEmpty() ? value : "-"), gbcValue);
     }
 
     private void openMap() {
         if (ekspedisi.getLatitude() != null && ekspedisi.getLongitude() != null) {
-            // Memeriksa apakah Desktop API didukung
             if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
                 try {
                     String url = String.format(Locale.US, "https://www.google.com/maps/search/?api=1&query=%f,%f",
                             ekspedisi.getLatitude(), ekspedisi.getLongitude());
                     Desktop.getDesktop().browse(new URI(url));
                 } catch (Exception ex) {
-                    JOptionPane.showMessageDialog(this, "Gagal membuka browser.", I18n.getString("msg.error.title"), JOptionPane.ERROR_MESSAGE);
+                    JOptionPane.showMessageDialog(this, "Gagal membuka browser.", "Error", JOptionPane.ERROR_MESSAGE);
                 }
             }
         } else {
-            JOptionPane.showMessageDialog(this, "Data koordinat tidak tersedia.", I18n.getString("msg.info.title"), JOptionPane.INFORMATION_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Data koordinat tidak tersedia.", "Info", JOptionPane.INFORMATION_MESSAGE);
         }
     }
 }
