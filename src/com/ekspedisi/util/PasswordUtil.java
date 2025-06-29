@@ -1,4 +1,3 @@
-// FILE: com/ekspedisi/util/PasswordUtil.java
 package com.ekspedisi.util;
 
 import java.nio.charset.StandardCharsets;

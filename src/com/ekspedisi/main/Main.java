@@ -1,4 +1,3 @@
-// FILE: com/main/Main.java
 package com.ekspedisi.main;
 
 import com.ekspedisi.main.LoginForm;

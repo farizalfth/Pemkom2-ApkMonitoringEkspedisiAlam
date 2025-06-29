@@ -1,4 +1,3 @@
-// FILE: com/ekspedisi/util/ImageRotator.java
 package com.ekspedisi.util;
 
 // --- IMPORT YANG BENAR DARI LIBRARY METADATA-EXTRACTOR ---

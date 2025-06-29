@@ -1,4 +1,3 @@
-// FILE: com/ekspedisi/model/AnggotaTim.java
 package com.ekspedisi.model;
 
 import java.io.Serializable;

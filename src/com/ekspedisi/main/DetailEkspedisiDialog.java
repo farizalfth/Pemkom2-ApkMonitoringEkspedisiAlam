@@ -1,4 +1,3 @@
-// FILE: com/ekspedisi/main/DetailEkspedisiDialog.java
 package com.ekspedisi.main;
 
 import com.ekspedisi.model.Ekspedisi;

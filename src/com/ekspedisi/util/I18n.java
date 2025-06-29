@@ -1,4 +1,3 @@
-// FILE: com/ekspedisi/util/I18n.java
 package com.ekspedisi.util; // Pastikan package-nya ini!
 
 import java.util.Locale;
@@ -41,7 +40,7 @@ public class I18n {
             return bundle.getString(key);
         } catch (Exception e) {
             // Mengembalikan key jika terjemahan tidak ditemukan, agar mudah di-debug.
-            return "!" + key + "!";
+            return "" + key + "";
         }
     }
 }

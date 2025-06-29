@@ -1,5 +1,4 @@
-// FILE: com/ekspedisi/util/GenericList.java
-package com.util;
+package com.ekspedisi.util;
 
 import java.io.Serializable;
 import java.util.ArrayList;

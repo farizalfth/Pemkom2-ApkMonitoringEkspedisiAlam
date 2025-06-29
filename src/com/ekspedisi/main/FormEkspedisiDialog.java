@@ -4,27 +4,60 @@ package com.ekspedisi.main;
 import com.ekspedisi.db.EkspedisiManager;
 import com.ekspedisi.model.AnggotaTim;
 import com.ekspedisi.model.Ekspedisi;
+import com.ekspedisi.util.I18n;
 
-import java.awt.*;
-import javax.swing.*;
+// Import untuk komponen UI, layout, dan event
+import java.awt.BorderLayout;
+import java.awt.Dimension;
+import java.awt.FlowLayout;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.Insets;
+import javax.swing.BorderFactory;
+import javax.swing.ButtonGroup;
+import javax.swing.JButton;
+import javax.swing.JComboBox;
+import javax.swing.JComponent;
+import javax.swing.JDialog;
+import javax.swing.JFileChooser;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JRadioButton;
+import javax.swing.JScrollPane;
+import javax.swing.JTable;
+import javax.swing.JTextArea;
+import javax.swing.JTextField;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.table.DefaultTableModel;
+
+// Import untuk manipulasi file dan tanggal
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.sql.Date;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Dialog modal untuk menambah atau mengedit data Ekspedisi.
+ * Versi final ini mencakup semua fungsionalitas, termasuk CRUD Anggota Tim
+ * dan input Jenis Pendakian, dengan tata letak yang rapi.
+ */
 public class FormEkspedisiDialog extends JDialog {
 
     private final EkspedisiManager ekspedisiManager;
     private final Ekspedisi currentEkspedisi;
     private final MainDashboard parentDashboard;
 
+    // Komponen UI
     private JTextField txtNamaTim, txtTujuan, txtTanggal, txtLatitude, txtLongitude;
+    private JRadioButton radioTektok, radioCamp;
     private JComboBox<String> cmbStatus;
     private JTextArea txtCatatan;
     private JLabel lblFotoPath;
@@ -44,11 +77,12 @@ public class FormEkspedisiDialog extends JDialog {
     }
 
     private void initUI() {
-        setTitle(currentEkspedisi == null ? "Tambah Ekspedisi Baru" : "Ubah Data Ekspedisi");
-        setSize(600, 750);
-        setMinimumSize(new Dimension(550, 650));
+        setTitle(currentEkspedisi == null ? I18n.getString("form.add.title") : I18n.getString("form.edit.title"));
+        setSize(650, 800);
+        setMinimumSize(new Dimension(600, 700));
         setLocationRelativeTo(getParent());
         setLayout(new BorderLayout(10, 10));
+
         add(createFormPanel(), BorderLayout.CENTER);
         add(createButtonPanel(), BorderLayout.SOUTH);
     }
@@ -57,8 +91,14 @@ public class FormEkspedisiDialog extends JDialog {
         JPanel formPanel = new JPanel(new GridBagLayout());
         formPanel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
         
+        // Inisialisasi semua komponen input
         txtNamaTim = new JTextField();
         txtTujuan = new JTextField();
+        radioTektok = new JRadioButton("Tektok");
+        radioCamp = new JRadioButton("Camp", true);
+        ButtonGroup pendakianGroup = new ButtonGroup();
+        pendakianGroup.add(radioTektok);
+        pendakianGroup.add(radioCamp);
         txtTanggal = new JTextField();
         txtLatitude = new JTextField();
         txtLongitude = new JTextField();
@@ -66,36 +106,43 @@ public class FormEkspedisiDialog extends JDialog {
         txtCatatan = new JTextArea(4, 20);
         txtCatatan.setLineWrap(true);
         txtCatatan.setWrapStyleWord(true);
-        lblFotoPath = new JLabel("Tidak ada foto dipilih.");
+        lblFotoPath = new JLabel(I18n.getString("msg.no.photo.selected"));
 
-        int y = 0;
+        int y = 0; // Counter baris
         
-        addComponent(formPanel, new JLabel("Nama Tim:"), 0, y, GridBagConstraints.LINE_END, GridBagConstraints.BOTH, 0.5);
+        // Menambahkan komponen menggunakan metode helper untuk kerapian
+        addComponent(formPanel, new JLabel(I18n.getString("form.team_name")), 0, y, GridBagConstraints.LINE_END, GridBagConstraints.BOTH, 0.5);
         addComponent(formPanel, txtNamaTim, 1, y++, GridBagConstraints.LINE_START, GridBagConstraints.BOTH, 0.5);
         
         addComponent(formPanel, createAnggotaPanel(), 0, y++, GridBagConstraints.LINE_START, 2, GridBagConstraints.BOTH, 1.0);
 
-        addComponent(formPanel, new JLabel("Tujuan:"), 0, y, GridBagConstraints.LINE_END, GridBagConstraints.BOTH, 0.5);
+        addComponent(formPanel, new JLabel(I18n.getString("form.destination")), 0, y, GridBagConstraints.LINE_END, GridBagConstraints.BOTH, 0.5);
         addComponent(formPanel, txtTujuan, 1, y++, GridBagConstraints.LINE_START, GridBagConstraints.BOTH, 0.5);
+        
+        addComponent(formPanel, new JLabel("Jenis Pendakian:"), 0, y, GridBagConstraints.LINE_END, GridBagConstraints.BOTH, 0.5);
+        JPanel pendakianPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        pendakianPanel.add(radioTektok);
+        pendakianPanel.add(radioCamp);
+        addComponent(formPanel, pendakianPanel, 1, y++, GridBagConstraints.LINE_START, GridBagConstraints.BOTH, 0.5);
 
-        addComponent(formPanel, new JLabel("Tanggal (yyyy-mm-dd):"), 0, y, GridBagConstraints.LINE_END, GridBagConstraints.BOTH, 0.5);
+        addComponent(formPanel, new JLabel(I18n.getString("form.date")), 0, y, GridBagConstraints.LINE_END, GridBagConstraints.BOTH, 0.5);
         addComponent(formPanel, txtTanggal, 1, y++, GridBagConstraints.LINE_START, GridBagConstraints.BOTH, 0.5);
 
-        addComponent(formPanel, new JLabel("Status:"), 0, y, GridBagConstraints.LINE_END, GridBagConstraints.BOTH, 0.5);
+        addComponent(formPanel, new JLabel(I18n.getString("form.status")), 0, y, GridBagConstraints.LINE_END, GridBagConstraints.BOTH, 0.5);
         addComponent(formPanel, cmbStatus, 1, y++, GridBagConstraints.LINE_START, GridBagConstraints.BOTH, 0.5);
 
-        addComponent(formPanel, new JLabel("Latitude:"), 0, y, GridBagConstraints.LINE_END, GridBagConstraints.BOTH, 0.5);
+        addComponent(formPanel, new JLabel(I18n.getString("form.latitude")), 0, y, GridBagConstraints.LINE_END, GridBagConstraints.BOTH, 0.5);
         addComponent(formPanel, txtLatitude, 1, y++, GridBagConstraints.LINE_START, GridBagConstraints.BOTH, 0.5);
 
-        addComponent(formPanel, new JLabel("Longitude:"), 0, y, GridBagConstraints.LINE_END, GridBagConstraints.BOTH, 0.5);
+        addComponent(formPanel, new JLabel(I18n.getString("form.longitude")), 0, y, GridBagConstraints.LINE_END, GridBagConstraints.BOTH, 0.5);
         addComponent(formPanel, txtLongitude, 1, y++, GridBagConstraints.LINE_START, GridBagConstraints.BOTH, 0.5);
 
-        addComponent(formPanel, new JLabel("Catatan:"), 0, y, GridBagConstraints.FIRST_LINE_END, GridBagConstraints.BOTH, 0.5);
+        addComponent(formPanel, new JLabel(I18n.getString("form.notes")), 0, y, GridBagConstraints.FIRST_LINE_END, GridBagConstraints.BOTH, 0.5);
         addComponent(formPanel, new JScrollPane(txtCatatan), 1, y++, GridBagConstraints.LINE_START, GridBagConstraints.BOTH, 0.5);
 
-        addComponent(formPanel, new JLabel("Foto Tim:"), 0, y, GridBagConstraints.LINE_END, GridBagConstraints.BOTH, 0.5);
+        addComponent(formPanel, new JLabel(I18n.getString("form.photo")), 0, y, GridBagConstraints.LINE_END, GridBagConstraints.BOTH, 0.5);
         JPanel photoPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
-        JButton btnBrowse = new JButton("Pilih Foto...");
+        JButton btnBrowse = new JButton(I18n.getString("form.photo.browse"));
         btnBrowse.addActionListener(e -> browsePhoto());
         photoPanel.add(btnBrowse);
         photoPanel.add(lblFotoPath);
@@ -185,7 +232,7 @@ public class FormEkspedisiDialog extends JDialog {
         JTextArea alamatArea = new JTextArea(alamatLama, 3, 20);
         alamatArea.setLineWrap(true);
         alamatArea.setWrapStyleWord(true);
-
+        
         JComponent[] inputs = new JComponent[] {
             new JLabel("Nama:"), namaField,
             new JLabel("Jenis Kelamin:"), radioPanel,
@@ -217,11 +264,19 @@ public class FormEkspedisiDialog extends JDialog {
     private void populateForm() {
         txtNamaTim.setText(currentEkspedisi.getNamaTim());
         txtTujuan.setText(currentEkspedisi.getTujuan());
+        
+        if ("Tektok".equals(currentEkspedisi.getJenisPendakian())) {
+            radioTektok.setSelected(true);
+        } else {
+            radioCamp.setSelected(true);
+        }
+        
         txtTanggal.setText(new SimpleDateFormat("yyyy-MM-dd").format(currentEkspedisi.getTanggal()));
         cmbStatus.setSelectedItem(currentEkspedisi.getStatus());
         txtLatitude.setText(currentEkspedisi.getLatitude() != null ? String.valueOf(currentEkspedisi.getLatitude()) : "");
         txtLongitude.setText(currentEkspedisi.getLongitude() != null ? String.valueOf(currentEkspedisi.getLongitude()) : "");
         txtCatatan.setText(currentEkspedisi.getCatatan());
+        
         if (currentEkspedisi.getPathFoto() != null && !currentEkspedisi.getPathFoto().isEmpty()) {
             lblFotoPath.setText(currentEkspedisi.getPathFoto());
         }
@@ -243,12 +298,12 @@ public class FormEkspedisiDialog extends JDialog {
         Ekspedisi ekspedisi = new Ekspedisi();
         ekspedisi.setNamaTim(txtNamaTim.getText());
         ekspedisi.setTujuan(txtTujuan.getText());
+        ekspedisi.setJenisPendakian(radioTektok.isSelected() ? "Tektok" : "Camp");
         ekspedisi.setStatus((String) cmbStatus.getSelectedItem());
         ekspedisi.setCatatan(txtCatatan.getText());
         
         try {
-            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-            java.util.Date utilDate = sdf.parse(txtTanggal.getText());
+            java.util.Date utilDate = new SimpleDateFormat("yyyy-MM-dd").parse(txtTanggal.getText());
             ekspedisi.setTanggal(new Date(utilDate.getTime()));
         } catch (ParseException e) {
             JOptionPane.showMessageDialog(this, "Format tanggal salah. Gunakan yyyy-mm-dd.", "Error", JOptionPane.ERROR_MESSAGE);
@@ -282,10 +337,10 @@ public class FormEkspedisiDialog extends JDialog {
         List<AnggotaTim> daftarAnggota = new ArrayList<>();
         for (int i = 0; i < tableAnggotaModel.getRowCount(); i++) {
             daftarAnggota.add(new AnggotaTim(
-                (String) tableAnggotaModel.getValueAt(i, 0), // Nama
-                (String) tableAnggotaModel.getValueAt(i, 1), // Jenis Kelamin
-                (String) tableAnggotaModel.getValueAt(i, 2), // No. TLP
-                (String) tableAnggotaModel.getValueAt(i, 3)  // Alamat
+                (String) tableAnggotaModel.getValueAt(i, 0),
+                (String) tableAnggotaModel.getValueAt(i, 1),
+                (String) tableAnggotaModel.getValueAt(i, 2),
+                (String) tableAnggotaModel.getValueAt(i, 3)
             ));
         }
         ekspedisi.setAnggota(daftarAnggota);
@@ -299,7 +354,7 @@ public class FormEkspedisiDialog extends JDialog {
         }
 
         if (success) {
-            JOptionPane.showMessageDialog(this, "Data berhasil disimpan.", "Sukses", JOptionPane.INFORMATION_MESSAGE);
+            JOptionPane.showMessageDialog(this, I18n.getString("msg.save.success"), "Sukses", JOptionPane.INFORMATION_MESSAGE);
             parentDashboard.loadDataAndStats();
             dispose();
         }
@@ -319,8 +374,7 @@ public class FormEkspedisiDialog extends JDialog {
         return !txtNamaTim.getText().trim().isEmpty() && !txtTujuan.getText().trim().isEmpty() && !txtTanggal.getText().trim().isEmpty();
     }
     
-    // --- Metode Helper untuk Tata Letak ---
-    private void addComponent(JPanel p, JComponent c, int x, int y, int anchor, int BOTH, double par2) { addComponent(p, c, x, y, anchor, 1, GridBagConstraints.NONE, 0); }
+    private void addComponent(JPanel p, JComponent c, int x, int y, int anchor, int BOTH, double par2) { addComponent(p, c, x, y, anchor, 1, GridBagConstraints.HORIZONTAL, 0); }
     private void addComponent(JPanel p, JComponent c, int x, int y, int anchor, int w) { addComponent(p, c, x, y, anchor, w, GridBagConstraints.HORIZONTAL, 0); }
     private void addComponent(JPanel p, JComponent c, int x, int y, int anchor, int w, int fill, double weighty) {
         GridBagConstraints gbc = new GridBagConstraints();
@@ -333,8 +387,8 @@ public class FormEkspedisiDialog extends JDialog {
 
     private JPanel createButtonPanel() {
         JPanel panel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        JButton btnSimpan = new JButton("Simpan");
-        JButton btnBatal = new JButton("Batal");
+        JButton btnSimpan = new JButton(I18n.getString("form.save.button"));
+        JButton btnBatal = new JButton(I18n.getString("form.cancel.button"));
         btnSimpan.addActionListener(e -> save());
         btnBatal.addActionListener(e -> dispose());
         panel.add(btnBatal); panel.add(btnSimpan);

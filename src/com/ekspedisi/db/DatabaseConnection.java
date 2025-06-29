@@ -1,4 +1,3 @@
-// FILE: com/ekspedisi/db/DatabaseConnection.java
 package com.ekspedisi.db;
 
 import java.sql.Connection;
