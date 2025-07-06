@@ -56,7 +56,7 @@ public class LoginForm extends JFrame {
      */
     private void initUI() {
         // --- Pengaturan Properti Frame ---
-        setTitle(I18n.getString("login.title"));
+        setTitle(I18n.getString("Login Ke Aplikasi Monitoring Ekspedisi Alam"));
         setSize(400, 200);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null); // Menampilkan jendela di tengah layar
@@ -72,20 +72,20 @@ public class LoginForm extends JFrame {
 
         // Baris 1: Label dan Field Username
         gbc.gridx = 0; gbc.gridy = 0;
-        panel.add(new JLabel(I18n.getString("login.username")), gbc);
+        panel.add(new JLabel(I18n.getString("Username")), gbc);
         
         gbc.gridx = 1; gbc.gridy = 0;
         panel.add(txtUsername, gbc);
 
         // Baris 2: Label dan Field Password
         gbc.gridx = 0; gbc.gridy = 1;
-        panel.add(new JLabel(I18n.getString("login.password")), gbc);
+        panel.add(new JLabel(I18n.getString("Password")), gbc);
 
         gbc.gridx = 1; gbc.gridy = 1;
         panel.add(txtPassword, gbc);
 
         // Baris 3: Tombol Login
-        JButton btnLogin = new JButton(I18n.getString("login.button"));
+        JButton btnLogin = new JButton(I18n.getString("Masuk"));
         gbc.gridx = 1; gbc.gridy = 2;
         gbc.anchor = GridBagConstraints.LINE_END; // Membuat tombol rata kanan
         gbc.fill = GridBagConstraints.NONE; // Ukuran tombol tidak meregang
